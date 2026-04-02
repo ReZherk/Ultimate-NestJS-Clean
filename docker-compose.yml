@@ -1,0 +1,132 @@
+# ═══════════════════════════════════════════════════════════════════════
+# DOCKER COMPOSE - NESTJS LEARNING PROJECT
+# ═══════════════════════════════════════════════════════════════════════
+# 📋 COMANDOS ÚTILES:
+#   docker-compose up -d          → Levanta todos los servicios en background
+#   docker-compose down           → Detiene y elimina contenedores
+#   docker-compose down -v        → También elimina los volúmenes (datos)
+#   docker-compose logs -f api    → Ver logs del servicio 'api'
+#   docker-compose ps             → Estado de los servicios
+#   docker-compose exec postgres psql -U nestuser -d nestdb → Entrar a PostgreSQL
+# ═══════════════════════════════════════════════════════════════════════
+
+version: '3.9' # Versión del formato de docker-compose
+
+# ── SERVICIOS ──────────────────────────────────────────────────────────────
+services:
+  # ─── POSTGRESQL ────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine # Imagen oficial de PostgreSQL 15 (alpine = ligera)
+    container_name: nestjs_postgres
+    restart: unless-stopped # Reinicia automáticamente salvo que lo pares manualmente
+    environment:
+      # Variables que PostgreSQL usa para configurarse al iniciar
+      POSTGRES_USER: ${DB_USERNAME:-nestuser} # Usuario principal
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-nestpassword} # Contraseña
+      POSTGRES_DB: ${DB_DATABASE:-nestdb} # Base de datos inicial
+      PGDATA: /var/lib/postgresql/data/pgdata # Dónde guarda los datos dentro del contenedor
+    ports:
+      - '${DB_PORT:-5432}:5432' # host:contenedor → accesible desde tu máquina en localhost:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persiste los datos entre reinicios
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql # Script de inicialización
+    networks:
+      - nestjs_network # Red interna para que los servicios se comuniquen entre sí
+    healthcheck:
+      # Docker verifica cada 10s si PostgreSQL está listo
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DB_USERNAME:-nestuser} -d ${DB_DATABASE:-nestdb}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─── REDIS ─────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine # Redis 7, versión Alpine (ligera)
+    container_name: nestjs_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+    # ↑ appendonly: persiste datos en disco (AOF - Append Only File)
+    # ↑ appendfsync everysec: escribe al disco cada segundo (balance performance/durabilidad)
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data # Persiste los datos de Redis
+    networks:
+      - nestjs_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── PGADMIN (Interfaz web para PostgreSQL) ────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: nestjs_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False' # Modo single-user (sin login de servidor)
+    ports:
+      - '5050:80' # Accede desde navegador en http://localhost:5050
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin # Persiste la configuración de pgAdmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json # Pre-configura la conexión a Postgres
+    networks:
+      - nestjs_network
+    depends_on:
+      postgres:
+        condition: service_healthy # Solo inicia cuando postgres esté listo
+
+  # ─── API (Tu aplicación NestJS) ─────────────────────────────────────────
+  # Descomenta este bloque cuando quieras correr toda la app en Docker
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: development      # Usa el stage 'development' del Dockerfile multi-stage
+  #   container_name: nestjs_api
+  #   restart: unless-stopped
+  #   environment:
+  #     NODE_ENV: development
+  #     DB_HOST: postgres        # ← Usa el nombre del servicio, NO localhost
+  #     REDIS_HOST: redis        # ← Ídem para Redis
+  #   ports:
+  #     - "${PORT:-3000}:3000"
+  #   volumes:
+  #     - .:/app                 # Monta el código fuente (live reload)
+  #     - /app/node_modules      # Excluye node_modules del montaje
+  #   networks:
+  #     - nestjs_network
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   command: npm run start:dev
+
+# ── VOLÚMENES ──────────────────────────────────────────────────────────────
+# Los volúmenes persisten datos entre reinicios de contenedores
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+# ── REDES ─────────────────────────────────────────────────────────────────
+# Red bridge personalizada para que los servicios se vean por nombre
+networks:
+  nestjs_network:
+    driver: bridge
+    name: nestjs_network
