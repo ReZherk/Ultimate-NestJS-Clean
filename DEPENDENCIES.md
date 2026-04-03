@@ -214,6 +214,33 @@ const product: Product = {
 
 ---
 
+## Tipos de TypeScript
+
+### `@types/bcrypt` y `@types/uuid`
+**¿Qué son?** Definiciones de tipos TypeScript para las librerías `bcrypt` y `uuid`.
+
+**¿Qué problema resuelven?** Proporcionan autocompletado, validación de tipos y mejor experiencia de desarrollo al usar estas librerías en TypeScript, ya que originalmente están escritas en JavaScript.
+
+**Nota importante:** Estos paquetes no se incluyen en producción. Son **dependencias de desarrollo (devDependencies)** que únicamente se usan durante el desarrollo para que TypeScript entienda los tipos de estas librerías.
+
+**Ejemplo de beneficio:**
+```typescript
+import * as bcrypt from 'bcrypt';
+
+// Con @types/bcrypt, TypeScript conoce:
+// - Parámetros de bcrypt.hash(password, saltRounds)
+// - Valor de retorno Promise<string>
+// - Métodos disponibles
+
+const hashed = await bcrypt.hash('password', 10);
+//      ^? TypeScript sabe que devuelve string
+
+const isValid = await bcrypt.compare('input', hashed);
+//      ^? TypeScript sabe que devuelve boolean
+```
+
+---
+
 ## Resumen de Casos de Uso
 
 | Dependencia | Caso de Uso Principal |
