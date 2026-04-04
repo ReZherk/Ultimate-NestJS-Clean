@@ -182,3 +182,15 @@ export class Result<T> {
 // AsyncResult: shortcut para Promise<Result<T>>
 // Se usa como tipo de retorno en servicios asíncronos
 export type AsyncResult<T> = Promise<Result<T>>;
+
+// ── Tipos genéricos ───────────────────────────────────────────────────────
+// PaginatedResult: resultado estandarizado de queries paginadas
+export interface PaginatedResult<T> {
+  data: T[]; // Array de resultados
+  total: number; // Total de registros (sin paginar)
+  page: number; // Página actual
+  limit: number; // Límite por página
+  totalPages: number; // Total de páginas
+  hasNextPage: boolean; // ¿Hay página siguiente?
+  hasPrevPage: boolean; // ¿Hay página anterior?
+}

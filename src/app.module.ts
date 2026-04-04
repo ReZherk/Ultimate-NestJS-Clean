@@ -8,6 +8,7 @@ import {
   redisConfig,
 } from './config/database.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -31,6 +32,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         ...dbConfig, //TypeScript sabe exactamente qué tipo es, sin warnings
       }),
     }),
+
+    // ─── Módulos de la aplicación ─────────────────────────────────────────
+    UsersModule, // Módulo de usuarios con cache Redis configurado
   ],
   controllers: [AppController],
   providers: [AppService],

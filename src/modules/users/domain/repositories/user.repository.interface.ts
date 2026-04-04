@@ -1,4 +1,5 @@
 import { AsyncResult } from 'src/common/result/result';
+import type { PaginatedResult } from 'src/common/result/result';
 import { UserEntity } from '../entities/user.entity';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -20,16 +21,6 @@ export interface UserFilters {
 export interface PaginationOptions {
   page: number; // Página actual (empieza en 1)
   limit: number; // Registros por página
-}
-
-export interface PaginatedResult<T> {
-  data: T[]; // Array de resultados
-  total: number; // Total de registros (sin paginar)
-  page: number; // Página actual
-  limit: number; // Límite por página
-  totalPages: number; // Total de páginas
-  hasNextPage: boolean; // ¿Hay página siguiente?
-  hasPrevPage: boolean; // ¿Hay página anterior?
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -5,10 +5,10 @@ import { Repository, IsNull, FindOptionsWhere } from 'typeorm'; // Utilidades de
 import { UserEntity, UserRole } from '../domain/entities/user.entity';
 import {
   IUserRepository,
-  PaginatedResult,
   PaginationOptions,
   UserFilters,
 } from '../domain/repositories/user.repository.interface';
+import type { PaginatedResult } from 'src/common/result/result';
 import { AppErrorCode, AsyncResult, Result } from 'src/common/result/result';
 
 @Injectable()
@@ -81,7 +81,7 @@ export class UserTypeOrmRepository implements IUserRepository {
         .createQueryBuilder('user')
         .addSelect('user.password') // Incluye la contraseña hasheada
         .where('user.email = :email', { email: email.toLowerCase().trim() })
-        .andWhere('user.deleted_at IS NULL')
+        .andWhere('user.deletedAt IS NULL')
         .getOne();
 
       // null es válido aquí: significa que no existe usuario con ese email
@@ -101,11 +101,11 @@ export class UserTypeOrmRepository implements IUserRepository {
       // QueryBuilder para queries complejas con múltiples condiciones
       const qb = this.ormRepo
         .createQueryBuilder('user')
-        .where('user.deleted_at IS NULL'); // Excluye soft-deleted
+        .where('user.deletedAt IS NULL'); // Excluye soft-deleted
 
       // ── Aplicar filtros dinámicos ────────────────────────────────────
       if (filters?.isActive !== undefined) {
-        qb.andWhere('user.is_active = :isActive', {
+        qb.andWhere('user.isActive = :isActive', {
           isActive: filters.isActive,
         });
       }
@@ -118,7 +118,7 @@ export class UserTypeOrmRepository implements IUserRepository {
         // ILike: case-insensitive LIKE en PostgreSQL
         // Busca en nombre O email (% = wildcard)
         qb.andWhere(
-          '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search)',
+          '(user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.email ILIKE :search)',
           { search: `%${filters.search}%` },
         );
       }
@@ -131,7 +131,7 @@ export class UserTypeOrmRepository implements IUserRepository {
       // getManyAndCount(): ejecuta dos queries: SELECT + COUNT(*)
       // Más eficiente que dos queries separadas
       const [data, total] = await qb
-        .orderBy('user.created_at', 'DESC') // Más recientes primero
+        .orderBy('user.createdAt', 'DESC') // Más recientes primero
         .skip(offset)
         .take(limit)
         .getManyAndCount();
@@ -259,7 +259,7 @@ export class UserTypeOrmRepository implements IUserRepository {
       }
 
       const total = await this.ormRepo.count({
-        where: whereClause, // TypeORM ya conoce el tipo, sin cast
+        where: whereClause, //  TypeORM ya conoce el tipo, sin cast
       });
 
       return Result.ok(total);
