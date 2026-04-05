@@ -159,8 +159,9 @@ export class UserService {
     };
 
     try {
-      // Cache de lista por 60 segundos (más corto que por ID, ya que cambia más)
-      await this.cacheManager.set(cacheKey, paginatedResponse, 60000);
+      // Cache de lista por 30 segundos (más corto que por ID, ya que cambia más)
+      // Con TTL corto, eventual consistency está garantizada
+      await this.cacheManager.set(cacheKey, paginatedResponse, 30000);
     } catch {
       /* silencioso */
     }
@@ -222,8 +223,8 @@ export class UserService {
   private async invalidateUserCache(id: string): Promise<void> {
     try {
       await this.cacheManager.del(CACHE_KEYS.USER_BY_ID(id));
-      // Nota: invalidar el cache de lista es más complejo (múltiples keys)
-      // En producción usarías cache tags o un patrón de versioning
+      // Nota: Con TTL corto (30s) en la lista, eventual consistency está asegurada.
+      // Para invalidación inmediata de listas, se necesitaría cache tags o patrón KEYS.
     } catch {
       this.logger.warn(`Error invalidando cache para usuario ${id}`);
     }
